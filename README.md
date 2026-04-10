@@ -1,10 +1,16 @@
-# Hemicellulose ML Optimization
+# Hemicellulose Extraction Optimization from Sugarcane Bagasse
 
-A machine learning pipeline for optimizing hemicellulose extraction conditions using gradient boosting regression and Bayesian optimization.
+Machine Learning-Driven Optimization of Hemicellulose Extraction from Sugarcane Bagasse using XGBoost, SHAP Interpretability, and Bayesian Process Intensification.
 
 ## Overview
 
-This repository contains code and analysis for predicting and optimizing hemicellulose yield under different extraction conditions. The model is trained on experimental data from Banerjee et al. (2014) and achieves high predictive accuracy (R² = 0.9570) on real-world test samples.
+This repository contains a complete ML pipeline for optimizing hemicellulose extraction from sugarcane bagasse. The model is trained on 224 data points (8 real anchor points from Banerjee et al. 2014 + 216 physics-constrained interpolated points) and validated on 40 physically-anchored test points.
+
+**Model Performance:**
+- **R² (Test, n=40):** 0.9645
+- **RMSE (Test):** 7.49 mg/g
+- **5-Fold CV R²:** 0.9933 ± 0.0033
+- **Generalization:** Excellent (no overfitting)
 
 ## Quick Start
 
@@ -16,87 +22,189 @@ cd hemicellulose-ml-optimization
 # Install dependencies
 pip install -r requirements.txt
 
-# Run the analysis
-jupyter notebook notebooks/hemicellulose_optimization_pipeline.ipynb
+# Run the complete pipeline
+jupyter notebook notebooks/hemicellulose_pipeline_v2.ipynb
 ```
 
 ## Repository Structure
 
 ```
 ├── data/
-│   ├── raw/                          # Original experimental data
-│   └── processed/                    # Processed datasets and outputs
-├── notebooks/                        # Jupyter notebooks for analysis
-├── figures/                          # Generated visualizations (PNG)
-├── requirements.txt                  # Python dependencies
-└── README.md                         # This file
+│   ├── raw/
+│   │   └── banerjee_2014_expanded_dataset.csv      # 224-point dataset
+│   └── processed/
+│       ├── optimal_conditions.csv                  # Bayesian optimization results
+│       └── pareto_front.csv                        # Multi-objective solutions
+├── models/
+│   ├── hemicellulose_model.pkl                     # Trained XGBoost model
+│   ├── hemicellulose_scaler.pkl                    # Feature scaler
+│   └── hemicellulose_features.pkl                  # Feature list
+├── notebooks/
+│   ├── hemicellulose_pipeline_v2.ipynb            # Main analysis notebook (14 cells)
+│   └── hemicellulose_optimization_pipeline.ipynb  # Archive notebook
+├── figures/
+│   ├── Fig1_actual_vs_predicted.png               # 3-panel validation
+│   ├── Fig2_shap_importance.png                   # SHAP feature analysis
+│   ├── Fig3_RSM_3D.png                            # 3D response surfaces
+│   ├── Fig4_contour_maps.png                      # 2D contour plots
+│   ├── Fig5_bayesian_optimization.png             # Convergence curves
+│   └── Fig6_pareto_front.png                      # Multi-objective Pareto front
+├── requirements.txt                                # Python dependencies
+└── README.md                                       # This file
 ```
 
-## Model Performance
+## Key Results
 
-| Metric | Value |
-|--------|-------|
-| R² Score | 0.9570 |
-| RMSE | 7.51 mg/g |
-| MAE | 6.48 mg/g |
-| Max Error | 11.45 mg/g |
+### Optimal Extraction Conditions (Bayesian GP Optimization)
+
+#### PHWE (Pressurized Hot Water Extraction)
+- **Temperature:** 177.4 °C
+- **Time:** 18.6 min
+- **LSR:** 27.8 ml/g
+- **Predicted Yield:** 78.3 mg/g
+
+#### Alkaline Peroxide
+- **Temperature:** 176.5 °C
+- **Time:** 14.2 min
+- **LSR:** 26.4 ml/g
+- **Predicted Yield:** 148.6 mg/g
+
+### Top Features (SHAP Importance)
+
+1. **Method (Alkaline=1):** 33.22 SHAP impact
+2. **Temperature (C):** 6.34 SHAP impact
+3. **T × Severity:** 2.62 SHAP impact
 
 ## Methodology
 
-The pipeline uses:
-- **XGBoost Regression** for yield prediction
-- **Feature Engineering** with 16 engineered features (interactions, polynomials, log-transforms)
-- **Bayesian Optimization** for finding optimal extraction conditions
-- **SHAP Analysis** for feature importance interpretation
+### Data Strategy
+- **Base Dataset:** 8 real experimental points from Banerjee et al. (2014) at 170, 180, 190, 200°C
+- **Expansion:** Physics-constrained interpolation using Overend-Chornet severity factor
+- **Final Dataset:** 224 total points with systematic variation:
+  - Temperature: 165-205°C
+  - Time: 5-30 min
+  - LSR: 10-50 ml/g
 
-## Dataset
+### Machine Learning Pipeline
+1. **Feature Engineering:** 16 engineered features
+   - Raw: Temperature, Time, LSR, Severity Factor
+   - Interactions: T×t, T×LSR, t×LSR, Sev×LSR, T×Sev
+   - Polynomials: T², t², LSR², Sev²
+   - Transforms: log(LSR), log(t)
+   - Indicator: is_Alkaline
 
-The analysis uses the hemicellulose extraction dataset from:
-- **Banerjee et al. (2014)** - "Comparative study of 2,3-dibromopropyl acrylate and allyl glycidyl ether modified kraft lignin in unsaturated polyester resin" - Bioresource Technology, 155, pp. 95-102
+2. **Model:** XGBoost Regressor
+   - n_estimators: 500
+   - max_depth: 4
+   - learning_rate: 0.05
+   - Subsample: 0.8, colsample_bytree: 0.8
+   - Regularization: α=0.1, λ=1.0
 
-## Key Findings
+3. **Explainability:** SHAP (KernelExplainer)
+   - Identifies feature contributions
+   - Reveals interaction effects
+   - Supports model interpretability
 
-### Optimal Extraction Conditions
+4. **Optimization:** Bayesian Gaussian Process
+   - 80 iterations (20 initial + 60 adaptive)
+   - Convergence within ~40 iterations
+   - Pareto front analysis for yield vs. lignin trade-off
 
-- **PHWE Method**: 97.19 mg/g hemicellulose yield
-- **Alkaline Method**: 157.81 mg/g hemicellulose yield
+## Installation & Setup
 
-### Temperature-Time Trade-offs
+```bash
+# 1. Clone repository
+git clone https://github.com/VedantJadhav701/hemicellulose-ml-optimization.git
+cd hemicellulose-ml-optimization
 
-The model reveals optimal operating windows for both extraction methods with detailed 3D response surface maps provided in the figures/ directory.
+# 2. Create virtual environment (recommended)
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
-## Installation
+# 3. Install dependencies
+pip install -r requirements.txt
 
-1. Clone this repository
-2. Create a virtual environment (optional but recommended):
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-3. Install requirements:
-   ```bash
-   pip install -r requirements.txt
-   ```
+# 4. Launch Jupyter
+jupyter notebook notebooks/hemicellulose_pipeline_v2.ipynb
+```
 
-## Usage
-
-### Loading the Trained Model
-
-The trained XGBoost model can be loaded and used for predictions:
+## Usage: Loading the Trained Model
 
 ```python
 import joblib
+import pandas as pd
 
-# Load model and scaler
-model = joblib.load('hemicellulose_yield_model.pkl')
-scaler = joblib.load('hemicellulose_scaler.pkl')
-features = joblib.load('hemicellulose_features.pkl')
+# Load model, scaler, and feature list
+model = joblib.load('models/hemicellulose_model.pkl')
+scaler = joblib.load('models/hemicellulose_scaler.pkl')
+features = joblib.load('models/hemicellulose_features.pkl')
 
-# Make predictions
-X_new = new_data[features]
+# Example: Predict yield for PHWE at optimal conditions
+X_new = pd.DataFrame([[
+    177.4,      # Temperature_C
+    18.6,       # Time_min
+    27.8,       # LSR_ml_per_g
+    2.45,       # Severity_Factor (log10(t * exp((T-100)/14.75)))
+    # ... (continue with 12 engineered features)
+]], columns=features)
+
+# Scale and predict
 X_scaled = scaler.transform(X_new)
-predictions = model.predict(X_scaled)
+yield_pred = model.predict(X_scaled)[0]
+print(f"Predicted yield: {yield_pred:.1f} mg/g")
 ```
+
+## Citation
+
+If you use this work in your research, please cite:
+
+```bibtex
+@article{Banerjee2014,
+  title={Non-cellulosic heteropolysaccharides from sugarcane bagasse - 
+         Sequential extraction with pressurized hot water and alkaline 
+         peroxide at different temperatures},
+  author={Banerjee, P.N. and Pranovich, A. and Dax, D. and Willfor, S.},
+  journal={Bioresource Technology},
+  volume={155},
+  pages={446--450},
+  year={2014}
+}
+```
+
+## Figures
+
+All publication-quality figures are generated at 200 DPI:
+- **Fig 1:** Model validation (actual vs predicted, residuals, real points table)
+- **Fig 2:** SHAP feature importance (bar chart + beeswarm plot)
+- **Fig 3:** 3D response surfaces (PHWE and Alkaline methods)
+- **Fig 4:** 2D contour maps with real/test point overlays
+- **Fig 5:** Bayesian optimization convergence curves
+- **Fig 6:** Pareto front (yield vs. lignin content, temperature-colored)
+
+## Requirements
+
+- Python 3.10+
+- pandas, numpy, scikit-learn
+- xgboost, shap
+- matplotlib, seaborn
+- scikit-optimize (for Bayesian GP)
+- joblib (for model serialization)
+
+See `requirements.txt` for exact versions.
+
+## Author
+
+**Vedant Jadhav**
+Machine Learning Optimization for Biorefinery Processes
+
+## License
+
+MIT License - See LICENSE file for details
+
+---
+
+**Last Updated:** April 2026
+**Status:** Production Ready ✅
 
 ## Reproducibility
 
