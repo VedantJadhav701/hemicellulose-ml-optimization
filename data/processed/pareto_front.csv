@@ -1,9 +1,0 @@
-Method,Temperature_C,Time_min,LSR_ml_per_g,Severity_Factor,Pred_Yield,Lignin_Content_percent
-Alkaline,175,30,20,3.6854,159.34895,7.23
-Alkaline,175,15,50,3.3844,155.69588,7.17
-Alkaline,175,25,20,3.6062,154.27013,6.96
-Alkaline,180,30,20,3.8326,151.6198,6.64
-Alkaline,205,30,20,4.5687,147.88,3.71
-Alkaline,205,15,40,4.2677,142.36745,3.48
-Alkaline,205,10,20,4.0916,135.25269,3.44
-Alkaline,205,15,10,4.2677,134.5772,3.39
